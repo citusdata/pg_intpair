@@ -1,0 +1,5 @@
+# session_analytics extension
+default_version = '0.1'
+module_pathname = '$libdir/intpair'
+relocatable = true
+
