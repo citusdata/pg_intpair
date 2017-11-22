@@ -68,7 +68,7 @@ CREATE OPERATOR < (
     JOIN = scalarltjoinsel);
 
 CREATE OPERATOR <= (
-    PROCEDURE = int64pair_lt, 
+    PROCEDURE = int64pair_lte,
     LEFTARG = int64pair, 
     RIGHTARG = int64pair,
     COMMUTATOR = >=,

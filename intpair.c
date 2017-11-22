@@ -38,8 +38,8 @@ typedef struct
 
 #define DatumGetInt64Pair(X)	 ((Int64Pair *) DatumGetPointer(X))
 #define Int64PairGetDatum(X)	 PointerGetDatum(X)
-#define PG_GETARG_INT64PAIR(n) DatumGetInt64Pair(PG_GETARG_DATUM(n))
-#define PG_RETURN_INT64PAIR(x) return Int64PairGetDatum(x)
+#define PG_GETARG_INT64PAIR(n)	 DatumGetInt64Pair(PG_GETARG_DATUM(n))
+#define PG_RETURN_INT64PAIR(x)	 return Int64PairGetDatum(x)
 
 Datum
 int64pair_in(PG_FUNCTION_ARGS)
@@ -47,11 +47,23 @@ int64pair_in(PG_FUNCTION_ARGS)
 	char *str = PG_GETARG_CSTRING(0);
 	Int64Pair *result = palloc0(sizeof(Int64Pair));
 	char *endptr = NULL;
-	result->first = strtoll(str, &endptr, 10);
-	if (*endptr)
-	{
-		result->second = strtoll(endptr+1, NULL, 10);
-	}
+	char *cur = str;
+	if (cur[0] != '(')
+		elog(ERROR, "expected '(' at position 0");
+	cur++;
+	result->first = strtoll(cur, &endptr, 10);
+	if (cur == endptr)
+		elog(ERROR, "expected number at position 1");
+	if (endptr[0] != ',')
+		elog(ERROR, "expected ',' at position " INT64_FORMAT, endptr - str);
+	cur = endptr + 1;
+	result->second = strtoll(cur, &endptr, 10);
+	if (cur == endptr)
+		elog(ERROR, "expected number at position " INT64_FORMAT, endptr - str);
+	if (endptr[0] != ')')
+		elog(ERROR, "expected ')' at position " INT64_FORMAT, endptr - str);
+	if (endptr[1] != '\0')
+		elog(ERROR, "unexpected character at position " INT64_FORMAT, 1 + (endptr - str));
 
 	PG_RETURN_INT64PAIR(result);
 }
@@ -61,7 +73,8 @@ int64pair_out(PG_FUNCTION_ARGS)
 {
 	Int64Pair *p = PG_GETARG_INT64PAIR(0);
 	StringInfo result = makeStringInfo();
-	appendStringInfo(result, INT64_FORMAT "," INT64_FORMAT, p->first, p->second);
+	appendStringInfo(result, "(" INT64_FORMAT "," INT64_FORMAT ")",
+					 p->first, p->second);
 	PG_RETURN_CSTRING(result->data);
 }
 
