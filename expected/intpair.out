@@ -1,0 +1,206 @@
+CREATE EXTENSION intpair;
+-- input and output
+SELECT '1,2'::int64pair;
+ERROR:  expected '(' at position 0
+LINE 1: SELECT '1,2'::int64pair;
+               ^
+SELECT '(1:2)'::int64pair;
+ERROR:  expected ',' at position 2
+LINE 1: SELECT '(1:2)'::int64pair;
+               ^
+SELECT '(,2)'::int64pair;
+ERROR:  expected number at position 1
+LINE 1: SELECT '(,2)'::int64pair;
+               ^
+SELECT '(1,)'::int64pair;
+ERROR:  expected number at position 3
+LINE 1: SELECT '(1,)'::int64pair;
+               ^
+SELECT '(1,2;'::int64pair;
+ERROR:  expected ')' at position 4
+LINE 1: SELECT '(1,2;'::int64pair;
+               ^
+SELECT '(1,2'::int64pair;
+ERROR:  expected ')' at position 4
+LINE 1: SELECT '(1,2'::int64pair;
+               ^
+SELECT '(a,2)'::int64pair;
+ERROR:  expected number at position 1
+LINE 1: SELECT '(a,2)'::int64pair;
+               ^
+SELECT '(-2,b)'::int64pair;
+ERROR:  expected number at position 4
+LINE 1: SELECT '(-2,b)'::int64pair;
+               ^
+SELECT ''::int64pair;
+ERROR:  expected '(' at position 0
+LINE 1: SELECT ''::int64pair;
+               ^
+SELECT '(1,2)a'::int64pair;
+ERROR:  unexpected character at position 5
+LINE 1: SELECT '(1,2)a'::int64pair;
+               ^
+SELECT '(1,2)'::int64pair;
+ int64pair 
+-----------
+ (1,2)
+(1 row)
+
+SELECT '(-1,-2)'::int64pair;
+ int64pair 
+-----------
+ (-1,-2)
+(1 row)
+
+SELECT '(1, 12393939)'::int64pair;
+  int64pair   
+--------------
+ (1,12393939)
+(1 row)
+
+SELECT '(-9223372036854775808, 9223372036854775807)'::int64pair;
+                 int64pair                  
+--------------------------------------------
+ (-9223372036854775808,9223372036854775807)
+(1 row)
+
+-- accessors
+CREATE FUNCTION first(p int64pair) RETURNS BIGINT
+    AS 'select p[0];'
+    LANGUAGE SQL IMMUTABLE
+    RETURNS NULL ON NULL INPUT;
+CREATE FUNCTION second(p int64pair) RETURNS BIGINT
+    AS 'select p[1];'
+    LANGUAGE SQL IMMUTABLE
+    RETURNS NULL ON NULL INPUT;
+SELECT ('(1,2)'::int64pair).first, ('(1,2)'::int64pair).second;
+ first | second 
+-------+--------
+     1 |      2
+(1 row)
+
+-- operators
+CREATE TABLE t1(a int64pair);
+INSERT INTO t1 VALUES ('(1,2)'), ('(1,3)'), ('(2,1)'), ('(2,4)');
+SELECT t1a.a, t1b.a, t1a.a < t1b.a AS lt, t1a.a <= t1b.a AS lte,
+       t1a.a = t1b.a AS eq, t1a.a <> t1b.a AS neq,
+	   t1a.a >= t1b.a AS gte, t1a.a > t1b.a AS gt
+FROM t1 t1a, t1 t1b
+ORDER BY t1a.a, t1b.a;
+   a   |   a   | lt | lte | eq | neq | gte | gt 
+-------+-------+----+-----+----+-----+-----+----
+ (1,2) | (1,2) | f  | t   | t  | f   | t   | f
+ (1,2) | (1,3) | t  | t   | f  | t   | f   | f
+ (1,2) | (2,1) | t  | t   | f  | t   | f   | f
+ (1,2) | (2,4) | t  | t   | f  | t   | f   | f
+ (1,3) | (1,2) | f  | f   | f  | t   | t   | t
+ (1,3) | (1,3) | f  | t   | t  | f   | t   | f
+ (1,3) | (2,1) | t  | t   | f  | t   | f   | f
+ (1,3) | (2,4) | t  | t   | f  | t   | f   | f
+ (2,1) | (1,2) | f  | f   | f  | t   | t   | t
+ (2,1) | (1,3) | f  | f   | f  | t   | t   | t
+ (2,1) | (2,1) | f  | t   | t  | f   | t   | f
+ (2,1) | (2,4) | t  | t   | f  | t   | f   | f
+ (2,4) | (1,2) | f  | f   | f  | t   | t   | t
+ (2,4) | (1,3) | f  | f   | f  | t   | t   | t
+ (2,4) | (2,1) | f  | f   | f  | t   | t   | t
+ (2,4) | (2,4) | f  | t   | t  | f   | t   | f
+(16 rows)
+
+-- indexes
+CREATE TABLE t2(a int64pair);
+INSERT INTO t2 SELECT int64pair(a, a+1) FROM generate_series(1,1000) a;
+CREATE INDEX ON t2(a);
+ANALYZE t2;
+EXPLAIN (COSTS OFF) SELECT count(*) FROM t2 WHERE a='(50,51)';
+                   QUERY PLAN                   
+------------------------------------------------
+ Aggregate
+   ->  Index Only Scan using t2_a_idx on t2
+         Index Cond: (a = '(50,51)'::int64pair)
+(3 rows)
+
+SELECT count(*) FROM t2 WHERE a='(50,51)';
+ count 
+-------
+     1
+(1 row)
+
+EXPLAIN (COSTS OFF) SELECT count(*) FROM t2 WHERE a='(431,50)';
+                   QUERY PLAN                    
+-------------------------------------------------
+ Aggregate
+   ->  Index Only Scan using t2_a_idx on t2
+         Index Cond: (a = '(431,50)'::int64pair)
+(3 rows)
+
+SELECT count(*) FROM t2 WHERE a='(431,50)';
+ count 
+-------
+     0
+(1 row)
+
+EXPLAIN (COSTS OFF) SELECT count(*) FROM t2 WHERE a='(611,612)';
+                    QUERY PLAN                    
+--------------------------------------------------
+ Aggregate
+   ->  Index Only Scan using t2_a_idx on t2
+         Index Cond: (a = '(611,612)'::int64pair)
+(3 rows)
+
+SELECT count(*) FROM t2 WHERE a='(611,612)';
+ count 
+-------
+     1
+(1 row)
+
+EXPLAIN (COSTS OFF) SELECT count(*) FROM t2 WHERE a='(931,932)';
+                    QUERY PLAN                    
+--------------------------------------------------
+ Aggregate
+   ->  Index Only Scan using t2_a_idx on t2
+         Index Cond: (a = '(931,932)'::int64pair)
+(3 rows)
+
+SELECT count(*) FROM t2 WHERE a='(931,932)';
+ count 
+-------
+     1
+(1 row)
+
+EXPLAIN (COSTS OFF) SELECT count(*) FROM t2 WHERE a='(931,931)';
+                    QUERY PLAN                    
+--------------------------------------------------
+ Aggregate
+   ->  Index Only Scan using t2_a_idx on t2
+         Index Cond: (a = '(931,931)'::int64pair)
+(3 rows)
+
+SELECT count(*) FROM t2 WHERE a='(931,931)';
+ count 
+-------
+     0
+(1 row)
+
+-- conversion to and from matching composite type
+CREATE TYPE composite_int64pair AS (first BIGINT, second BIGINT);
+CREATE TABLE t3(a composite_int64pair);
+INSERT INTO t3 VALUES ((1,2)), ((-1,0)), ((4, 3));
+ALTER TABLE t3 ALTER COLUMN a TYPE int64pair USING a::text::int64pair;
+SELECT * FROM t3 ORDER BY a;
+   a    
+--------
+ (-1,0)
+ (1,2)
+ (4,3)
+(3 rows)
+
+ALTER TABLE t3 ALTER COLUMN a TYPE composite_int64pair USING a::text::composite_int64pair;
+SELECT * FROM t3 ORDER BY a;
+   a    
+--------
+ (-1,0)
+ (1,2)
+ (4,3)
+(3 rows)
+

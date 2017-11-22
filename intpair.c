@@ -20,6 +20,7 @@ PG_MODULE_MAGIC;
 
 PG_FUNCTION_INFO_V1(int64pair_in);
 PG_FUNCTION_INFO_V1(int64pair_out);
+PG_FUNCTION_INFO_V1(int64pair_make);
 PG_FUNCTION_INFO_V1(int64pair_lt);
 PG_FUNCTION_INFO_V1(int64pair_lte);
 PG_FUNCTION_INFO_V1(int64pair_neq);
@@ -76,6 +77,15 @@ int64pair_out(PG_FUNCTION_ARGS)
 	appendStringInfo(result, "(" INT64_FORMAT "," INT64_FORMAT ")",
 					 p->first, p->second);
 	PG_RETURN_CSTRING(result->data);
+}
+
+Datum
+int64pair_make(PG_FUNCTION_ARGS)
+{
+	Int64Pair *result = palloc0(sizeof(Int64Pair));
+	result->first = PG_GETARG_INT64(0);
+	result->second = PG_GETARG_INT64(1);
+	PG_RETURN_INT64PAIR(result);
 }
 
 Datum

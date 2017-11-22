@@ -6,7 +6,7 @@ OBJS = intpair.o
 EXTENSION = intpair
 DATA = intpair--0.1.sql
 
-REGRESS = 
+REGRESS = intpair
 
 PG_CONFIG = pg_config
 PGXS := $(shell $(PG_CONFIG) --pgxs)
