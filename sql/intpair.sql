@@ -63,3 +63,11 @@ ALTER TABLE t3 ALTER COLUMN a TYPE int64pair USING a::text::int64pair;
 SELECT * FROM t3 ORDER BY a;
 ALTER TABLE t3 ALTER COLUMN a TYPE composite_int64pair USING a::text::composite_int64pair;
 SELECT * FROM t3 ORDER BY a;
+
+-- implicit cast from matching composite type
+CREATE CAST (composite_int64pair AS int64pair) WITH INOUT AS IMPLICIT;
+CREATE CAST (int64pair AS composite_int64pair) WITH INOUT AS IMPLICIT;
+ALTER TABLE t3 ALTER COLUMN a TYPE int64pair;
+SELECT * FROM t3 ORDER BY a;
+ALTER TABLE t3 ALTER COLUMN a TYPE composite_int64pair;
+SELECT * FROM t3 ORDER BY a;
