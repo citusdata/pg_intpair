@@ -60,7 +60,7 @@ CREATE TYPE int64pair (
     INTERNALLENGTH = 16,
     ELEMENT = int8,
     STORAGE = plain,
-    DELIMITER = ';'
+    DELIMITER = ','
 );
 
 CREATE OPERATOR < (
