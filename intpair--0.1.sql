@@ -125,9 +125,9 @@ CREATE OPERATOR CLASS btree_int64pair_ops
         OPERATOR    3   =,
         OPERATOR    4   >=,
         OPERATOR    5   >,
-        FUNCTION    1   int64pair_cmp;
+        FUNCTION    1   int64pair_cmp (int64pair, int64pair);
 
 CREATE OPERATOR CLASS hash_int64pair_ops
     DEFAULT FOR TYPE int64pair USING hash AS
         OPERATOR    1   =,
-        FUNCTION    1   int64pair_hash;
+        FUNCTION    1   int64pair_hash (int64pair);
