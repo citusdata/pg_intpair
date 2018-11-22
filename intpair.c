@@ -14,6 +14,7 @@
 #include "access/hash.h"
 #include "fmgr.h"
 #include "funcapi.h"
+#include "libpq/pqformat.h"
 
 /* declarations for dynamic loading */
 PG_MODULE_MAGIC;
@@ -29,6 +30,8 @@ PG_FUNCTION_INFO_V1(int64pair_gt);
 PG_FUNCTION_INFO_V1(int64pair_gte);
 PG_FUNCTION_INFO_V1(int64pair_cmp);
 PG_FUNCTION_INFO_V1(int64pair_hash);
+PG_FUNCTION_INFO_V1(int64pair_send);
+PG_FUNCTION_INFO_V1(int64pair_recv);
 
 typedef struct
 {
@@ -165,4 +168,30 @@ int64pair_hash(PG_FUNCTION_ARGS)
 	Int64Pair *a = PG_GETARG_INT64PAIR(0);
 
 	PG_RETURN_DATUM(hash_any((unsigned char *) a, sizeof(Int64Pair)));
+}
+
+Datum
+int64pair_send(PG_FUNCTION_ARGS)
+{
+	Int64Pair *a = PG_GETARG_INT64PAIR(0);
+	StringInfoData buf;
+
+	pq_begintypsend(&buf);
+
+	pq_sendint64(&buf, a->first);
+	pq_sendint64(&buf, a->second);
+
+	PG_RETURN_BYTEA_P(pq_endtypsend(&buf));
+}
+
+Datum
+int64pair_recv(PG_FUNCTION_ARGS)
+{
+	StringInfo	buf = (StringInfo) PG_GETARG_POINTER(0);
+	
+	Int64Pair *result = palloc0(sizeof(Int64Pair));
+	result->first = pq_getmsgint64(buf);
+	result->second = pq_getmsgint64(buf);
+
+	PG_RETURN_INT64PAIR(result);
 }

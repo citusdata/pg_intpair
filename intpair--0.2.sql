@@ -54,9 +54,21 @@ RETURNS INTEGER
 AS 'MODULE_PATHNAME', 'int64pair_hash'
 LANGUAGE C STRICT IMMUTABLE;
 
+CREATE FUNCTION int64pair_send(int64pair)
+RETURNS bytea
+AS 'MODULE_PATHNAME', 'int64pair_send'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
+CREATE FUNCTION int64pair_recv(internal)
+RETURNS int64pair
+AS 'MODULE_PATHNAME', 'int64pair_recv'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
 CREATE TYPE int64pair (
     INPUT = int64pair_in,
     OUTPUT = int64pair_out,
+    SEND = int64pair_send,
+    RECEIVE = int64pair_recv,
     INTERNALLENGTH = 16,
     ELEMENT = int8,
     STORAGE = plain,

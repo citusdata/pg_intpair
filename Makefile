@@ -4,7 +4,7 @@ MODULE_big = intpair
 OBJS = intpair.o
 
 EXTENSION = intpair
-DATA = intpair--0.1.sql
+DATA = intpair--0.2.sql intpair--0.1--0.2.sql
 
 REGRESS = intpair
 
